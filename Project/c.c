@@ -1,15 +1,10 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#define ALPH 26
+#include "cipher.h"
 
 FILE *fin;
 FILE *fout;
-int findKey(float given[], float found[]);
-void readFreq(float given[]);
-void calcFreq(float found[]);
-void rotate(float given[]);
 
 int main(int argc, char* argv[])
 {
@@ -19,7 +14,6 @@ int main(int argc, char* argv[])
     int i, count;
     float tmp;
     int key;
-
 
     fin = fopen(argv[1], "r");
     fout = fopen(argv[2], "w");
@@ -33,7 +27,7 @@ int main(int argc, char* argv[])
     readFreq(given);
     calcFreq(found);
     key = findKey(given, found);
-	printf ("%i\n", key);
+
     rewind(fin);
 
     decrypt(key);
@@ -71,53 +65,34 @@ void decrypt(int key) {
 
 }
 
-void rotate(float given[]){
+int findKey(float given[], float found[]) {
+    float sum = 0;
+    float min = 0;
+    int key,k,i;
+    float tmp;
+    for (i=0;i<26;i++) {
+        tmp = given[i]-found[i];
+        min += (tmp<0)? -tmp:tmp;
+    }
 
-        int i;
-        float tmp, letterZ = given[ALPH-1];
-
-	//moves each element 1 spot down the array
-        for(i = ALPH-1; i >= 0; i--){
-                tmp = given[i-1];
-                given[i] = tmp;
+    k = 1;
+    for (k=1;k<26;k++) {
+        sum = 0;
+        for (i=0;i<26;i++) {
+            tmp = given[(i+k)%26]-found[i];
+            sum += (tmp<0)? -tmp:tmp;
         }
-        given[0] = letterZ;
-}
-float sqr(float s){
-	return s*s;
-}
 
-int findKey(float given[], float found[]){
-
-	int i, j, key = 0, firstTime = 1;
-	float sum = 0, lowSum;
-
-	//tries all 26 rotations
-	for(j = 0; j < ALPH; j++){
-		sum = 0;
-
-		//sums the differences between the arrays
-		for(i = 0; i < ALPH; i++)
-			sum += sqr(found[i] - given[i]);
-
-		if(firstTime){
-			lowSum = sum;
-			firstTime = 0;
-		}
-
-		if(sum < lowSum){
-			lowSum = sum;
-			key = j;
-		}
-
-		rotate(given);
-	}
-
-	return key;
+        if (sum < min) {
+            min = sum;
+            key = k;
+        }
+        sum = 0;
+    }
+    return key;
 }
 
-
-void readFreq(float *given) {
+void readFreq(float given[]) {
     float f;
     char ch;
     FILE* letFreq = fopen("LetFreq.txt", "r");
@@ -128,7 +103,7 @@ void readFreq(float *given) {
     }
 }
 
-void calcFreq(float *found){
+void calcFreq(float found[]){
     char ch;
     int count = 0;
     int i;
